@@ -2,7 +2,10 @@
 sort OnOffLights	= struct On | Off;
 sort FBC_output 	= struct High | Low | Both |FBC_Off;
 
-act in_HighBeam, in_LowBeam, in_FBC:, read;
+act in_HighBeam:OnOffLights;
+ 	in_LowBeam :OnOffLights;
+    in_FBC	   :FBC_output;
+	read;
 
 %process
 proc HighBeamModule =
