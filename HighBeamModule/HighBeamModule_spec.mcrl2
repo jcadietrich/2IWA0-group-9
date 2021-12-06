@@ -1,0 +1,5 @@
+sort HighBeam = struct On | Off;
+sort in_HighBeam = struct On | Off;
+sort LowBeam = struct On | Off;
+sort in_LowBeam = struct On | Off;
+sort in_FrontBodyController = High | Low | Off;
