@@ -1,5 +1,23 @@
-sort HighBeam = struct On | Off;
-sort in_HighBeam = struct On | Off;
-sort LowBeam = struct On | Off;
-sort in_LowBeam = struct On | Off;
-sort in_FrontBodyController = High | Low | Off;
+
+sort OnOffLights	= struct On | Off;
+sort FBC_output 	= struct High | Low | Both |FBC_Off;
+
+act in_HighBeam, in_LowBeam, in_FBC:, read;
+
+%process
+proc HighBeamModule =
+	  in_FBC(High) 		. in_LowBeam(Off)  . in_HighBeam(On)  . HighBeamModule
+	+ in_FBC(Low)  		. in_HighBeam(Off) . in_LowBeam(On)   . HighBeamModule
+	+ in_FBC(Both) 		. in_HighBeam(On)  . in_LowBeam(On)   . HighBeamModule
+	+ in_FBC(FBC_Off) 	. in_LowBeam(Off)  . in_HighBeam(Off) . HighBeamModule;
+ 	
+	
+	
+init HighBeamModule;
+
+
+
+
+
+
+
