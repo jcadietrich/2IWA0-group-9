@@ -13,9 +13,9 @@ act in_HighBeam:OnOffLights;
 %process
 proc HighBeamModule(high:OnOffLights, low:OnOffLights) =
 	  in_HB(Off,Off). in_HighBeam(Off). HighBeam(Off) . in_LowBeam(Off) . LowBeam(Off)  . HighBeamModule(Off,Off)
-	+ in_HB(On,Off) . in_HighBeam(On) . HighBeam(On)  . in_LowBeam(Off) . LowBeam(Off)  . HighBeamModule(On,low)
-	+ in_HB(On,Off) . in_HighBeam(On) . HighBeam(On)  . in_LowBeam(Off) . LowBeam(Off)  . HighBeamModule(high,Off)
-	+ in_HB(Off,On) . in_HighBeam(Off). HighBeam(Off) . in_LowBeam(On)  . LowBeam(On)   . HighBeamModule(high,On)
+	+ in_HB(On,Off) . in_HighBeam(On) . HighBeam(On)  . in_LowBeam(On) . LowBeam(On)  . HighBeamModule(On,On)
+	+ in_HB(On,Off) . in_HighBeam(On) . HighBeam(On)  . in_LowBeam(Off) . LowBeam(Off)  . HighBeamModule(On,Off)
+	+ in_HB(Off,On) . in_HighBeam(Off). HighBeam(Off) . in_LowBeam(On)  . LowBeam(On)   . HighBeamModule(Off,On)
 ;
 
 proc BodyControllerFront(high:OnOffLights, low:OnOffLights) =
