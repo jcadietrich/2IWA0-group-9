@@ -1,0 +1,31 @@
+sort OnOffLights	= struct On | Off;
+sort FBC_output 	= struct High | Low | Both |FBC_Off;
+
+act in_HighBeam:OnOffLights;
+ 	in_LowBeam :OnOffLights;
+    out_FBC	   :OnOffLights # OnOffLights;
+	LowBeam	   :OnOffLights;
+	HighBeam   :OnOffLights;
+	in_HB      :OnOffLights # OnOffLights;
+	com_fbc2hb :OnOffLights # OnOffLights;
+	
+
+%process
+proc HighBeamModule(high:OnOffLights, low:OnOffLights) =
+	  in_HB(Off,Off). in_HighBeam(Off). HighBeam(Off) . in_LowBeam(Off) . LowBeam(Off)  . HighBeamModule(Off,Off)
+	+ in_HB(On,Off) . in_HighBeam(On) . HighBeam(On)  . in_LowBeam(Off) . LowBeam(Off)  . HighBeamModule(On,low)
+	+ in_HB(On,Off) . in_HighBeam(On) . HighBeam(On)  . in_LowBeam(Off) . LowBeam(Off)  . HighBeamModule(high,Off)
+	+ in_HB(Off,On) . in_HighBeam(Off). HighBeam(Off) . in_LowBeam(On)  . LowBeam(On)   . HighBeamModule(high,On)
+;
+
+proc BodyControllerFront(high:OnOffLights, low:OnOffLights) =
+		out_FBC(On,Off)  . BodyControllerFront(On,Off)
+	+	out_FBC(On,On)   . BodyControllerFront(On,On)
+	+	out_FBC(Off,On)  . BodyControllerFront(Off,On)
+	+	out_FBC(Off,Off) . BodyControllerFront(Off,Off)
+;
+%init HighBeamModule(Off,Off);
+init 	allow ({com_fbc2hb,in_HighBeam,in_LowBeam,LowBeam,HighBeam} ,
+		comm({out_FBC|in_HB -> com_fbc2hb}, 
+		BodyControllerFront(Off,Off)||HighBeamModule(Off,Off)));
+
