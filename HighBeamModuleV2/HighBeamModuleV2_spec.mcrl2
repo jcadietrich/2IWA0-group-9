@@ -1,23 +1,54 @@
 sort OnOffLights	= struct On | Off;
 sort FBC_output 	= struct High | Low | Both |FBC_Off;
 
-act in_HighBeam:OnOffLights;
+act 
+%Internal actions
+	in_HighBeam:OnOffLights;
  	in_LowBeam :OnOffLights;
     out_FBC	   :OnOffLights # OnOffLights;
-	LowBeam	   :OnOffLights;
-	HighBeam   :OnOffLights;
 	in_HB      :OnOffLights # OnOffLights;
 	com_fbc2hb :OnOffLights # OnOffLights;
+
+%External actions
+	LowBeam	   :OnOffLights;
+	HighBeam   :OnOffLights;
+
+%Change variables
+	HighBeamState:OnOffLights;
 	
 
 %process
 proc HighBeamModule(high:OnOffLights, low:OnOffLights) =
-	  in_HB(Off,Off). in_HighBeam(Off). HighBeam(Off) . in_LowBeam(Off) . LowBeam(Off)  . HighBeamModule(Off,Off)
-	+ in_HB(On,Off) . in_HighBeam(On) . HighBeam(On)  . in_LowBeam(On) . LowBeam(On)  . HighBeamModule(On,On)
-	+ in_HB(On,Off) . in_HighBeam(On) . HighBeam(On)  . in_LowBeam(Off) . LowBeam(Off)  . HighBeamModule(On,Off)
-	+ in_HB(Off,On) . in_HighBeam(Off). HighBeam(Off) . in_LowBeam(On)  . LowBeam(On)   . HighBeamModule(Off,On)
+	%  in_HB(Off,Off). in_HighBeam(Off). HighBeam(Off) . in_LowBeam(Off) . LowBeam(Off)  . HighBeamModule(Off,Off)
+	%+ in_HB(On,Off) . in_HighBeam(On) . HighBeam(On)  . in_LowBeam(On)  . LowBeam(On)   . HighBeamModule(On,On)
+	%+ in_HB(On,Off) . in_HighBeam(On) . HighBeam(On)  . in_LowBeam(Off) . LowBeam(Off)  . HighBeamModule(On,Off)
+	%+ in_HB(Off,On) . in_HighBeam(Off). HighBeam(Off) . in_LowBeam(On)  . LowBeam(On)   . HighBeamModule(Off,On)
+
+	sum changeHighBeamState:OnOffLights, changeLowBeamState:OnOffLights . HighBeamModule(changeHighBeamState,changeLowBeamState)
+	+ (high==ChangeLog(high))-> HighBeamModule()<> HighBeam(high).HighBeamModule(high)
+
+;
+proc ChangeLog(high:OnOffLights, low:OnOffLights) =
+	sum highR:OnOffLights,lowR:OnOffLights  .
+		(high == highR)(
+			((low == lowR) 
+					(HighBeamModule(low = lowR) . ChangeLog(high = highR, low = lowR) %if,if
+					<> 
+					ChangeLog(high=highR) %if,else
+					)
+			)
+			<> 
+			(HighBeamModule(high = highR)) . (
+				(low == lowR)	
+					((HighBeamModule(low = lowR) . ChangeLog(low = lowR)) %else,if
+					<>
+					ChangeLog() %else,else
+				)
+			)
+		)
 ;
 
+			
 proc BodyControllerFront(high:OnOffLights, low:OnOffLights) =
 		out_FBC(On,Off)  . BodyControllerFront(On,Off)
 	+	out_FBC(On,On)   . BodyControllerFront(On,On)
