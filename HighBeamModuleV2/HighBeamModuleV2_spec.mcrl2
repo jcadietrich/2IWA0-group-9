@@ -1,62 +1,43 @@
 sort OnOffLights	= struct On | Off;
-sort FBC_output 	= struct High | Low | Both |FBC_Off;
+sort keystate		= struct NoKey | Inserted | Ignition;
 
 act 
 %Internal actions
-	in_HighBeam:OnOffLights;
- 	in_LowBeam :OnOffLights;
-    out_FBC	   :OnOffLights # OnOffLights;
-	in_HB      :OnOffLights # OnOffLights;
-	com_fbc2hb :OnOffLights # OnOffLights;
+	in_HighBeam	:OnOffLights;
+ 	in_LowBeam 	:OnOffLights;
+    out_FBC_high:OnOffLights;
+	out_FBC_low	:OnOffLights;
+	highR      	:OnOffLights;
+	lowR		:OnOffLights;
+	com_fbc2hb_high :OnOffLights;
+	com_fbc2hb_low	:OnOffLights;
 
 %External actions
-	LowBeam	   :OnOffLights;
-	HighBeam   :OnOffLights;
+	LowBeam	   	:OnOffLights;
+	HighBeam   	:OnOffLights;
+	KeyState	:keystate;
 
 %Change variables
-	HighBeamState:OnOffLights;
 	
 
 %process
 proc HighBeamModule(high:OnOffLights, low:OnOffLights) =
-	%  in_HB(Off,Off). in_HighBeam(Off). HighBeam(Off) . in_LowBeam(Off) . LowBeam(Off)  . HighBeamModule(Off,Off)
-	%+ in_HB(On,Off) . in_HighBeam(On) . HighBeam(On)  . in_LowBeam(On)  . LowBeam(On)   . HighBeamModule(On,On)
-	%+ in_HB(On,Off) . in_HighBeam(On) . HighBeam(On)  . in_LowBeam(Off) . LowBeam(Off)  . HighBeamModule(On,Off)
-	%+ in_HB(Off,On) . in_HighBeam(Off). HighBeam(Off) . in_LowBeam(On)  . LowBeam(On)   . HighBeamModule(Off,On)
-
-	sum changeHighBeamState:OnOffLights, changeLowBeamState:OnOffLights . HighBeamModule(changeHighBeamState,changeLowBeamState)
-	+ (high==ChangeLog(high))-> HighBeamModule()<> HighBeam(high).HighBeamModule(high)
+	sum nh:OnOffLights  . (high != nh)-> 	highR(nh).	(HighBeam(nh) . HighBeamModule(high=nh))
++	sum nl:OnOffLights 	. (low != nl) ->	lowR(nl) .	(LowBeam(nl)  . HighBeamModule(low=nl))
 
 ;
-proc ChangeLog(high:OnOffLights, low:OnOffLights) =
-	sum highR:OnOffLights,lowR:OnOffLights  .
-		(high == highR)(
-			((low == lowR) 
-					(HighBeamModule(low = lowR) . ChangeLog(high = highR, low = lowR) %if,if
-					<> 
-					ChangeLog(high=highR) %if,else
-					)
-			)
-			<> 
-			(HighBeamModule(high = highR)) . (
-				(low == lowR)	
-					((HighBeamModule(low = lowR) . ChangeLog(low = lowR)) %else,if
-					<>
-					ChangeLog() %else,else
-				)
-			)
-		)
-;
+
 
 			
-proc BodyControllerFront(high:OnOffLights, low:OnOffLights) =
-		out_FBC(On,Off)  . BodyControllerFront(On,Off)
-	+	out_FBC(On,On)   . BodyControllerFront(On,On)
-	+	out_FBC(Off,On)  . BodyControllerFront(Off,On)
-	+	out_FBC(Off,Off) . BodyControllerFront(Off,Off)
+proc BodyControllerFront(high:OnOffLights, low:OnOffLights,key:keystate) =
+		(key == NoKey)->out_FBC_high(On)  . BodyControllerFront(On,low,key)
+	+	(key == NoKey)->out_FBC_high(Off)   . BodyControllerFront(Off,low,key)
+	+	(key == NoKey)->out_FBC_low(Off)  . BodyControllerFront(high,On,key)
+	+	(key == NoKey)->out_FBC_low(On) . BodyControllerFront(high,Off,key)
 ;
 %init HighBeamModule(Off,Off);
-init 	allow ({com_fbc2hb,in_HighBeam,in_LowBeam,LowBeam,HighBeam} ,
-		comm({out_FBC|in_HB -> com_fbc2hb}, 
-		BodyControllerFront(Off,Off)||HighBeamModule(Off,Off)));
+init 	hide({out_FBC_high,highR},allow ({com_fbc2hb_high,com_fbc2hb_low,LowBeam,HighBeam} ,
+			comm({out_FBC_high|highR -> com_fbc2hb_high, 
+			out_FBC_low|lowR -> com_fbc2hb_low}, 
+			BodyControllerFront(Off,Off,NoKey)||HighBeamModule(Off,Off))));
 
