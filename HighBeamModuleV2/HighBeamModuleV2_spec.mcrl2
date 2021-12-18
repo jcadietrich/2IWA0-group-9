@@ -9,35 +9,61 @@ act
 	out_FBC_low	:OnOffLights;
 	highR      	:OnOffLights;
 	lowR		:OnOffLights;
-	com_fbc2hb_high :OnOffLights;
-	com_fbc2hb_low	:OnOffLights;
+	keyS		:keystate;
+	keyR		:keystate;
+	%rearR		:OnOffLights;
+	com_bcf2hb_high :OnOffLights;
+	com_bcf2hb_low	:OnOffLights;
+	com_ign2bcf		:keystate;
+	%com_bcf2bcr		:OnOffLights;
 
 %External actions
 	LowBeam	   	:OnOffLights;
 	HighBeam   	:OnOffLights;
 	KeyState	:keystate;
+	TailLight	:OnOffLights;
 
 %Change variables
 	
 
 %process
 proc HighBeamModule(high:OnOffLights, low:OnOffLights) =
-	sum nh:OnOffLights  . (high != nh)-> 	highR(nh).	(HighBeam(nh) . HighBeamModule(high=nh))
-+	sum nl:OnOffLights 	. (low != nl) ->	lowR(nl) .	(LowBeam(nl)  . HighBeamModule(low=nl))
+		sum newhigh:OnOffLights  . (high != newhigh)	-> 	highR(newhigh)	.	(HighBeam(newhigh) . HighBeamModule(high=newhigh))
+	+	sum newlow:OnOffLights 	 . (low != newlow) 		->	lowR(newlow) 	.	(LowBeam(newlow)   . HighBeamModule(low=newlow))
 
 ;
-
+proc BodyControllerRear(high:OnOffLights,low:OnOffLights) =
+		sum newhigh:OnOffLights . (high != newhigh) -> highR(newhigh) . BodyControllerRear(high = newhigh) 
+	+	sum newlow:OnOffLights 	. (low != newlow) 	->lowR(newlow)    . BodyControllerRear(low=newlow)
+	+	(high==On) ->  (TailLight(On) . BodyControllerRear(high,low) ) 
+			<> 
+			((low!=Off)-> TailLight(On) . BodyControllerRear(high,low))
+;
 
 			
 proc BodyControllerFront(high:OnOffLights, low:OnOffLights,key:keystate) =
-		(key == NoKey)->out_FBC_high(On)  . BodyControllerFront(On,low,key)
-	+	(key == NoKey)->out_FBC_high(Off)   . BodyControllerFront(Off,low,key)
-	+	(key == NoKey)->out_FBC_low(Off)  . BodyControllerFront(high,On,key)
-	+	(key == NoKey)->out_FBC_low(On) . BodyControllerFront(high,Off,key)
+		(key != NoKey)	->out_FBC_high(On)  	. BodyControllerFront(On,low,key)
+	+	(key != NoKey)	->out_FBC_high(Off)   	. BodyControllerFront(Off,low,key)
+	+	(key != NoKey)	->out_FBC_low(Off)  	. BodyControllerFront(high,On,key)
+	+	(key != NoKey)	->out_FBC_low(On) 		. BodyControllerFront(high,Off,key)
+	+	sum newkey:keystate . (key != newkey) -> keyR(newkey) . BodyControllerFront(key = newkey)
+
 ;
+
+proc IgnitionSwitch(key:keystate) =
+		(key != Inserted)->KeyState(Inserted). keyS(Inserted) 	. IgnitionSwitch(Inserted)
+	+	(key == Inserted)->KeyState(Ignition). keyS(Ignition)	. IgnitionSwitch(Ignition)
+	+	(key == Inserted)->KeyState(NoKey)	 . keyS(NoKey)		. IgnitionSwitch(NoKey)
+
+;
+
+
 %init HighBeamModule(Off,Off);
-init 	hide({out_FBC_high,highR},allow ({com_fbc2hb_high,com_fbc2hb_low,LowBeam,HighBeam} ,
-			comm({out_FBC_high|highR -> com_fbc2hb_high, 
-			out_FBC_low|lowR -> com_fbc2hb_low}, 
-			BodyControllerFront(Off,Off,NoKey)||HighBeamModule(Off,Off))));
+init 	hide({HighBeam,LowBeam},allow ({com_bcf2hb_high,com_bcf2hb_low,LowBeam,HighBeam,com_ign2bcf,KeyState} ,
+			comm({
+				out_FBC_high|	highR 	-> com_bcf2hb_high, 
+				out_FBC_low	|	lowR 	-> com_bcf2hb_low,
+				keyS		|	keyR 	-> com_ign2bcf
+			}, 
+			BodyControllerFront(Off,Off,NoKey)||HighBeamModule(Off,Off)||IgnitionSwitch(NoKey))));
 
