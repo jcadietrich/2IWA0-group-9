@@ -1,4 +1,6 @@
 <root>
  <spec>HighBeamModuleV2_spec.mcrl2</spec>
- <properties/>
+ <properties>
+  <property>Deadlock</property>
+ </properties>
 </root>
