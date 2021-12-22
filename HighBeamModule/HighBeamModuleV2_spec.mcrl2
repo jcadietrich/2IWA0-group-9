@@ -1,6 +1,7 @@
-sort OnOffLights	= struct On | Off;
+sort OnOffLights	= struct On | Off | Auto;
 sort keystate		= struct NoKey | Inserted | Ignition;
 sort pitman			= struct Push | Flash | Neutral;
+sort HighLow			= struct High | Low;
 
 act 
 %Internal actions
@@ -28,6 +29,9 @@ act
 	TailLight			:OnOffLights;
 	KeyState			:keystate;
 	PitmanArm			:pitman;
+	ExtLampSwitch	:OnOffLights;
+	DRL					:OnOffLights;
+	Brightness		:HighLow;
 
 %Change variables
 	
