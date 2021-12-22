@@ -39,13 +39,24 @@ act
 %process
 
 			
-proc BodyControllerFront(high:OnOffLights, low:OnOffLights,key:keystate,pit:pitman) =
-		(key != NoKey)	->highS(On)  	. BodyControllerFront(high = On)
-	+	(key != NoKey)	->highS(Off)   	. BodyControllerFront(high = Off)
-	+	(key != NoKey)	->lowS(Off)  	. BodyControllerFront(low = Off)
-	+	(key != NoKey)	->lowS(On) 		. BodyControllerFront(low = On)
+proc BodyControllerFront(high:OnOffLights, low:OnOffLights,key:keystate,pit:pitman,els:OnOffLights) =
+%Exterior lamp switch
+		(els != On)->ExtLampSwitch(On)  . BodyControllerFront(els = On)
+	+	(els == On)->ExtLampSwitch(Off) . BodyControllerFront(els = Off)
+	+	(els == On)->ExtLampSwitch(Auto). BodyControllerFront(els = Auto)
+
+%Day time running light
+	%+	(drl != On)->DRL(On) . BodyControllerFront(drl = On)
+	%+	(drl == On)->DRL(Off). BodyControllerFront(drl = Off)
+	
+
+	+	(key != NoKey)	->highS(On)  	. BodyControllerFront(high = On)
+	+	highS(Off)   	. BodyControllerFront(high = Off)
+	+	lowS(Off)  	. BodyControllerFront(low = Off)
+	+	(key != NoKey && els == On)	->lowS(On) 		. BodyControllerFront(low = On)
 	+	sum newkey:keystate . (key != newkey) -> keyR(newkey) . BodyControllerFront(key = newkey)
 	+  sum newpit:pitman   . (pit != newpit) -> pitR(newpit) . BodyControllerFront(pit = newpit)
+
 
 ;
 
@@ -77,15 +88,17 @@ proc SteeringColumnSwitch(pit:pitman) =
 
 
 %init HighBeamModule(Off,Off);
-init 	hide({HighBeam,LowBeam,TailLight},
-			allow ({com_bcf2hb_high,com_bcf2hb_low,LowBeam,HighBeam,com_ign2bcf,KeyState,TailLight,com_scs2bcf} ,
+init 	hide({TailLight},
+			allow ({com_bcf2hb_high,com_bcf2hb_low,com_ign2bcf,com_scs2bcf,
+					LowBeam,HighBeam,TailLight,ExtLampSwitch,KeyState
+					} ,
 				comm({
 					highS|	highR | rearhighR	-> com_bcf2hb_high, 
 					lowS |	lowR  | rearlowR 	-> com_bcf2hb_low,
 					keyS		   |keyR 			-> com_ign2bcf,
 					pitS		   |pitR			-> com_scs2bcf
 				}, 
-			BodyControllerFront(Off,Off,NoKey, Neutral)||
+			BodyControllerFront(Off,Off,NoKey, Neutral,Off)||
 			HighBeamModule(Off,Off)||
 			IgnitionSwitch(NoKey)||
 			BodyControllerRear(Off,Off,Off)||

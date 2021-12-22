@@ -1,1 +1,1 @@
-[true*.keyState(Ignition) . !keyState(Inserted)* . exteriorLampState(On) || !exteriorLampState(Off)* || ! exteriorLampState(auto)*]<LowBeam(On)>true
+[true*.keyState(Ignition) . !keyState(Inserted)* . exteriorLampSwitch(On) || (!exteriorLampSwitch(Off)*) || ! exteriorLampSwitch(auto)*]<LowBeam(On)>true
