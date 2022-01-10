@@ -48,9 +48,6 @@ proc BodyControllerFront(high:OnOffLights, low:OnOffLights,key:keystate,pit:pitm
 	+	(bs == Low)->Brightness(High)	. BodyControllerFront(bs = High)
 	+	(bs != Low)->Brightness(Low)	. BodyControllerFront(bs = Low)	
 
-%Day time running light
-	%+	(drl != On)->DRL(On) . BodyControllerFront(drl = On)
-	%+	(drl == On)->DRL(Off). BodyControllerFront(drl = Off)
 	
 
 	+	(key != NoKey)	->highS(On)  	. BodyControllerFront(high = On)
