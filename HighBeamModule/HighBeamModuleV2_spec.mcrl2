@@ -25,75 +25,65 @@ act
 		com_ign2bcf			:keystate;
 	
 %External actions
-	LowBeam	   			:OnOffLights;
-	HighBeam   			:OnOffLights;
-	TailLight			:OnOffLights;
-	KeyState			:keystate;
-	PitmanArm			:pitman;
-	ExtLampSwitch		:OnOffLights;
-	DRL					:OnOffLights;
-	Brightness			:HighLow;
-
-%Change variables
+	LowBeam	   				:OnOffLights;
+	HighBeam   				:OnOffLights;
+	TailLight				:OnOffLights;
+	KeyState				:keystate;
+	PitmanArm				:pitman;
+	ExtLampSwitch			:OnOffLights;
+	DRL						:OnOffLights;
+	Brightness				:HighLow;
 	
 
-%process
-
-			
+%process			
 proc BodyControllerFront(high:OnOffLights, low:OnOffLights,key:keystate,pit:pitman,els:OnOffLights,bs:HighLow) =
-%Exterior lamp switch
+	%Exterior lamp switch
 		(els != On)->ExtLampSwitch(On)  . BodyControllerFront(els = On)
 	+	(els == On)->ExtLampSwitch(Off) . BodyControllerFront(els = Off)
 	+	(els == On)->ExtLampSwitch(Auto). BodyControllerFront(els = Auto)
+	%Brightness sensor
 	+	(bs == Low)->Brightness(High)	. BodyControllerFront(bs = High)
 	+	(bs != Low)->Brightness(Low)	. BodyControllerFront(bs = Low)	
-
-	
-
-	+	(key != NoKey)	->highS(On)  	. BodyControllerFront(high = On)
-	+	highS(Off)   	. BodyControllerFront(high = Off)
-	+	(key != NoKey && (els == On || (els==Auto && bs==Low)))	->(lowS(On) . BodyControllerFront(low = On)) <> (lowS(Off)  	. BodyControllerFront(low = Off))		
+	%Receiving communication 
 	+	sum newkey:keystate . (key != newkey) -> keyR(newkey) . BodyControllerFront(key = newkey)
 	+   sum newpit:pitman   . (pit != newpit) -> pitR(newpit) . BodyControllerFront(pit = newpit)
-
-
+	
+	%logic and sending communication
+	+	(key != NoKey && ((els == On && pit == Push) || ( pit == Flash)))	->(highS(On). BodyControllerFront(high = On)) 
+			<> 
+			(highS(Off)	. BodyControllerFront(high = Off))
+	+	(key != NoKey && ( els == On ||(els == Auto  &&     bs==Low)))		->(lowS(On) . BodyControllerFront(low  = On)) 
+			<> 
+			(lowS(Off)  . BodyControllerFront(low  = Off))		
 ;
-
-
-
-
 
 proc HighBeamModule(high:OnOffLights, low:OnOffLights) =
 		sum newhigh:OnOffLights  . (high != newhigh)	-> 	highR(newhigh)	.	(HighBeam(newhigh) . HighBeamModule(high=newhigh))
 	+	sum newlow:OnOffLights 	 . (low != newlow) 		->	lowR(newlow) 	.	(LowBeam(newlow)   . HighBeamModule(low=newlow))
-
 ;
+
 proc BodyControllerRear(high:OnOffLights,low:OnOffLights,Tail:OnOffLights) =
-		sum newhigh:OnOffLights . (high != newhigh) 	-> rearhighR(newhigh) . BodyControllerRear(high = newhigh) 
-	+	sum newlow:OnOffLights 	. (low != newlow) 	-> rearlowR(newlow)    . BodyControllerRear(low=newlow)
-	+	((high==On || low == On) && Tail != On)  		-> TailLight(On) . BodyControllerRear(Tail = On) 
-	+	(high==Off && low == Off && Tail != Off)		->	TailLight(Off).BodyControllerRear(Tail = Off)		 
-		
+		sum newhigh:OnOffLights . (high != newhigh) 	-> rearhighR(newhigh) 	. BodyControllerRear(high = newhigh) 
+	+	sum newlow:OnOffLights 	. (low != newlow) 		-> rearlowR(newlow)    	. BodyControllerRear(low=newlow)
+	+	((high==On || low == On) && Tail != On)  		-> TailLight(On) 		. BodyControllerRear(Tail = On) 
+	+	(high==Off && low == Off && Tail != Off)		->	TailLight(Off)		.BodyControllerRear(Tail = Off)		 		
 ;
 
 proc IgnitionSwitch(key:keystate) =
-		(key != Inserted)->KeyState(Inserted). keyS(Inserted) 	. IgnitionSwitch(Inserted)
-	+	(key == Inserted)->KeyState(Ignition). keyS(Ignition)	. IgnitionSwitch(Ignition)
-	+	(key == Inserted)->KeyState(NoKey)	  . keyS(NoKey)		. IgnitionSwitch(NoKey)
-
+		(key != Inserted)->KeyState(Inserted) 		. keyS(Inserted) 	. IgnitionSwitch(Inserted)
+	+	(key == Inserted)->KeyState(Ignition) 		. keyS(Ignition)	. IgnitionSwitch(Ignition)
+	+	(key == Inserted)->KeyState(NoKey)	  		. keyS(NoKey)		. IgnitionSwitch(NoKey)
 ;
 
 proc SteeringColumnSwitch(pit:pitman) = 
-		(pit != Neutral)	->PitmanArm(Neutral	)	.	pitS(Neutral)	.SteeringColumnSwitch(Neutral)
-	+	(pit == Neutral)	->PitmanArm(Flash)		.	pitS(Flash)		.SteeringColumnSwitch(Flash)
-	+	(pit == Neutral)	->PitmanArm(Push)		.	pitS(Push)		.SteeringColumnSwitch(Push)
+		(pit != Neutral)	-> PitmanArm(Neutral)	. pitS(Neutral)		.SteeringColumnSwitch(Neutral)
+	+	(pit == Neutral)	-> PitmanArm(Flash)		. pitS(Flash)		.SteeringColumnSwitch(Flash)
+	+	(pit == Neutral)	-> PitmanArm(Push)		. pitS(Push)		.SteeringColumnSwitch(Push)
 ;
 
-
 %init HighBeamModule(Off,Off);
-init 	hide({TailLight},
-			allow ({com_bcf2hb_high,com_bcf2hb_low,com_ign2bcf,com_scs2bcf,
-					LowBeam,HighBeam,TailLight,ExtLampSwitch,KeyState,Brightness
+init 			allow ({com_bcf2hb_high,com_bcf2hb_low,com_ign2bcf,com_scs2bcf,
+					LowBeam,HighBeam,TailLight,ExtLampSwitch,KeyState,Brightness,PitmanArm
 					} ,
 				comm({
 					highS|	highR | rearhighR	-> com_bcf2hb_high, 
@@ -106,5 +96,4 @@ init 	hide({TailLight},
 			IgnitionSwitch(NoKey)||
 			BodyControllerRear(Off,Off,Off)||
 			SteeringColumnSwitch(Neutral)
-			)));
-
+			));
