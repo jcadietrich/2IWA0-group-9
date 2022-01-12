@@ -23,6 +23,10 @@ act
 		keyS				:keystate;
 		keyR				:keystate;
 		com_ign2bcf			:keystate;
+	%exterior lamp switch communication
+		elsS				:OnOffLights;
+		elsR				:OnOffLights;
+		com_els2bcf		:OnOffLights;
 	
 %External actions
 	LowBeam	   				:OnOffLights;
@@ -38,15 +42,14 @@ act
 %process			
 proc BodyControllerFront(high:OnOffLights, low:OnOffLights,key:keystate,pit:pitman,els:OnOffLights,bs:HighLow) =
 	%Exterior lamp switch
-		(els != On)->ExtLampSwitch(On)  . BodyControllerFront(els = On)
-	+	(els == On)->ExtLampSwitch(Off) . BodyControllerFront(els = Off)
-	+	(els == On)->ExtLampSwitch(Auto). BodyControllerFront(els = Auto)
+
 	%Brightness sensor
-	+	(bs == Low)->Brightness(High)	. BodyControllerFront(bs = High)
+		(bs == Low)->Brightness(High)	. BodyControllerFront(bs = High)
 	+	(bs != Low)->Brightness(Low)	. BodyControllerFront(bs = Low)	
 	%Receiving communication 
 	+	sum newkey:keystate . (key != newkey) -> keyR(newkey) . BodyControllerFront(key = newkey)
-	+   sum newpit:pitman   . (pit != newpit) -> pitR(newpit) . BodyControllerFront(pit = newpit)
+	+    sum newpit:pitman   . (pit != newpit) -> pitR(newpit) . BodyControllerFront(pit = newpit)
+	+	sum newels:OnOffLights . (els !=newels)-> elsR(newels). BodyControllerFront(els = newels)
 	
 	%logic and sending communication
 	+	(key != NoKey && ((els == On && pit == Push) || ( pit == Flash)))	->(highS(On). BodyControllerFront(high = On)) 
@@ -80,20 +83,27 @@ proc SteeringColumnSwitch(pit:pitman) =
 	+	(pit == Neutral)	-> PitmanArm(Flash)		. pitS(Flash)		.SteeringColumnSwitch(Flash)
 	+	(pit == Neutral)	-> PitmanArm(Push)		. pitS(Push)		.SteeringColumnSwitch(Push)
 ;
+proc ExternalLampSwitch(els:OnOffLights) = 
+		(els != On)->ExtLampSwitch(On)  .elsS(On)	. ExternalLampSwitch(On)
+	+	(els == On)->ExtLampSwitch(Off) .elsS(Off)	. ExternalLampSwitch(Off)
+	+	(els == On)->ExtLampSwitch(Auto).elsS(Auto). ExternalLampSwitch(Auto)
+;
 
 %init HighBeamModule(Off,Off);
-init 			allow ({com_bcf2hb_high,com_bcf2hb_low,com_ign2bcf,com_scs2bcf,
+init 		allow ({com_bcf2hb_high,com_bcf2hb_low,com_ign2bcf,com_scs2bcf,com_els2bcf,
 					LowBeam,HighBeam,TailLight,ExtLampSwitch,KeyState,Brightness,PitmanArm
 					} ,
 				comm({
 					highS|	highR | rearhighR	-> com_bcf2hb_high, 
 					lowS |	lowR  | rearlowR 	-> com_bcf2hb_low,
 					keyS		   |keyR 			-> com_ign2bcf,
-					pitS		   |pitR			-> com_scs2bcf
+					pitS		   |pitR			-> com_scs2bcf,
+					elsS		   |elsR			-> com_els2bcf
 				}, 
 			BodyControllerFront(Off,Off,NoKey, Neutral,Off,High)||
 			HighBeamModule(Off,Off)||
 			IgnitionSwitch(NoKey)||
 			BodyControllerRear(Off,Off,Off)||
-			SteeringColumnSwitch(Neutral)
+			SteeringColumnSwitch(Neutral)||
+			ExternalLampSwitch(Off)
 			));

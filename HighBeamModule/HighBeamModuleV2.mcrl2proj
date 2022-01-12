@@ -1,8 +1,12 @@
 <root>
  <spec>HighBeamModuleV2_spec.mcrl2</spec>
  <properties>
-  <property>No deadlock</property>
-  <property>Low Beam Headlights</property>
-  <property>Headlight deactivation</property>
+  <property>1No deadlock</property>
+  <property>2 Low Beam Headlights</property>
+  <property>3 Headlight deactivation</property>
+  <property>4 DRL on          </property>
+  <property>4 DRL off        </property>
+  <property>5 brightness     </property>
+  <property>6 tail lights</property>
  </properties>
 </root>

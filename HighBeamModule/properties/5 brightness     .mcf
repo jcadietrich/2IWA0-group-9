@@ -1,0 +1,37 @@
+[true*. ExtLampSwitch(Auto) .
+!(ExtLampSwitch(On) || ExtLampSwitch(Off))*.
+KeyState(Ignition) .
+!KeyState(NoKey)*.
+Brightness(Low)]
+<true*. LowBeam(On)>true
+&&
+[true*. ExtLampSwitch(Auto) .
+!(ExtLampSwitch(On) || ExtLampSwitch(Off))*.
+Brightness(Low). !Brightness(High)* .
+KeyState(Ignition)]
+<true*. LowBeam(On)>true
+&&
+[true*. Brightness(Low). !Brightness(High)* . 
+ExtLampSwitch(Auto) .
+!(ExtLampSwitch(On) || ExtLampSwitch(Off))*.
+KeyState(Ignition)]
+<true*. LowBeam(On)>true
+&&
+[true*. Brightness(Low). !Brightness(High)* .
+KeyState(Ignition) .
+!KeyState(NoKey)* . 
+ExtLampSwitch(Auto)]
+<true*. LowBeam(On)>true
+&&
+[true*. KeyState(Ignition) .
+!KeyState(NoKey)*.
+ExtLampSwitch(Auto) .
+!(ExtLampSwitch(On) || ExtLampSwitch(Off))*.
+Brightness(Low)]
+<true*. LowBeam(On)>true
+&&
+[true*. KeyState(Ignition) .
+!KeyState(NoKey)*.
+Brightness(Low).!Brightness(High)*.
+ExtLampSwitch(Auto)]
+<true*. LowBeam(On)>true

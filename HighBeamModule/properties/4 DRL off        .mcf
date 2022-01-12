@@ -1,0 +1,4 @@
+[true*. DRL(On) .
+ true*. KeyState(Ignition). 
+ true*. KeyState(NoKey)]
+<true*. LowBeam(Off)>true
