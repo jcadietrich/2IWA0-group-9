@@ -8,5 +8,6 @@
   <property>4 DRL off        </property>
   <property>5 brightness     </property>
   <property>6 tail lights</property>
+  <property>8 highbeam</property>
  </properties>
 </root>
