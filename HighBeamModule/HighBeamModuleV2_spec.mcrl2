@@ -1,7 +1,7 @@
 sort OnOffLights	= struct On | Off | Auto;
 sort keystate		= struct NoKey | Inserted | Ignition;
 sort pitman			= struct Push | Flash | Neutral;
-sort HighLow			= struct High | Low;
+sort HighLow		= struct High | Low;
 
 act 
 %Internal actions
@@ -26,7 +26,7 @@ act
 	%exterior lamp switch communication
 		elsS				:OnOffLights;
 		elsR				:OnOffLights;
-		com_els2bcf		:OnOffLights;
+		com_els2bcf			:OnOffLights;
 	
 %External actions
 	LowBeam	   				:OnOffLights;
@@ -69,7 +69,7 @@ proc BodyControllerRear(high:OnOffLights,low:OnOffLights,Tail:OnOffLights) =
 		sum newhigh:OnOffLights . (high != newhigh) 	-> rearhighR(newhigh) 	. BodyControllerRear(high = newhigh) 
 	+	sum newlow:OnOffLights 	. (low != newlow) 		-> rearlowR(newlow)    	. BodyControllerRear(low=newlow)
 	+	((high==On || low == On) && Tail != On)  		-> TailLight(On) 		. BodyControllerRear(Tail = On) 
-	+	(high==Off && low == Off && Tail != Off)		->	TailLight(Off)		.BodyControllerRear(Tail = Off)		 		
+	+	(high==Off && low == Off && Tail != Off)		-> TailLight(Off)		.BodyControllerRear(Tail = Off)		 		
 ;
 
 proc IgnitionSwitch(key:keystate) =
@@ -86,21 +86,21 @@ proc SteeringColumnSwitch(pit:pitman) =
 proc ExternalLampSwitch(els:OnOffLights) = 
 		(els != On)->ExtLampSwitch(On)  .elsS(On)	. ExternalLampSwitch(On)
 	+	(els == On)->ExtLampSwitch(Off) .elsS(Off)	. ExternalLampSwitch(Off)
-	+	(els == On)->ExtLampSwitch(Auto).elsS(Auto). ExternalLampSwitch(Auto)
+	+	(els == On)->ExtLampSwitch(Auto).elsS(Auto)	. ExternalLampSwitch(Auto)
 ;
 
 %init HighBeamModule(Off,Off);
 init 		allow ({com_bcf2hb_high,com_bcf2hb_low,com_ign2bcf,com_scs2bcf,com_els2bcf,
-					LowBeam,HighBeam,TailLight,ExtLampSwitch,KeyState,Brightness,PitmanArm
+					LowBeam,HighBeam,TailLight,ExtLampSwitch,KeyState,Brightness,PitmanArm,DRL
 					} ,
 				comm({
-					highS|	highR | rearhighR	-> com_bcf2hb_high, 
-					lowS |	lowR  | rearlowR 	-> com_bcf2hb_low,
+					highS|	highR | rearhighR		-> com_bcf2hb_high, 
+					lowS |	lowR  | rearlowR 		-> com_bcf2hb_low,
 					keyS		   |keyR 			-> com_ign2bcf,
 					pitS		   |pitR			-> com_scs2bcf,
 					elsS		   |elsR			-> com_els2bcf
 				}, 
-			BodyControllerFront(Off,Off,NoKey, Neutral,Off,High)||
+			BodyControllerFront(NoKey, Neutral,Off,High,Off)||
 			HighBeamModule(Off,Off)||
 			IgnitionSwitch(NoKey)||
 			BodyControllerRear(Off,Off,Off)||

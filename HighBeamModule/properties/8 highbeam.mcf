@@ -1,0 +1,5 @@
+[true*.KeyState(Ignition). !KeyState(NoKey)*.
+ ExtLampSwitch(On). 
+!(ExtLampSwitch(Off) || ExtLampSwitch(Auto)||DRL(On)||Brightness(High))*.
+ PitmanArm(Push)] 
+mu X.([!HighBeam(On)]X &&  <true>true)
