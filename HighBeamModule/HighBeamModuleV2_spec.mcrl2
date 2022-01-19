@@ -86,7 +86,7 @@ proc BodyControllerFront(high:OnOffLights, low:OnOffLights,key:keystate,pit:pitm
 ;
 
 proc HighBeamModule(high:OnOffLights, low:OnOffLights) =
-		sum newhigh:OnOffLights  .( (highR(newhigh)	.	(HighBeam(newhigh) . HighBeamModule(high=newhigh))))
+		sum newhigh:OnOffLights  .( (highR(newhigh)	.	(HighBeam(newhigh) . HighBeamModule(high=newhigh))))%<>(stateS(Idle).HighBeamModule())
 	+	sum newlow:OnOffLights 	 .(	lowR(newlow) 	.	(LowBeam(newlow)   . HighBeamModule(low=newlow)))
 
 
