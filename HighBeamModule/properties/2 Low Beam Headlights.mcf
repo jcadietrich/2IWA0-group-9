@@ -1,7 +1,8 @@
 [true*.KeyState(Ignition) .
  !KeyState(NoKey)* .
-  ExtLampSwitch(On)]
- <true*. LowBeam(On)>true
+  ExtLampSwitch(On)
+ ]
+ <!(ExtLampSwitch(Off)||ExtLampSwitch(Auto)||KeyState(NoKey))*.LowBeam(On)>true
 &&
 [true *.ExtLampSwitch(On) .
  !(ExtLampSwitch(Off) || ExtLampSwitch(Auto))* .

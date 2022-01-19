@@ -2,7 +2,7 @@ sort OnOffLights	= struct On | Off | Auto;
 sort keystate		= struct NoKey | Inserted | Ignition;
 sort pitman			= struct Push | Flash | Neutral;
 sort HighLow		= struct High | Low;
-sort State			= struct Idle|Check;
+sort State			= struct Idle|Check|Checkt|CheckL;
 
 act 
 %Internal actions
@@ -29,18 +29,12 @@ act
 		elsS				:OnOffLights;
 		elsR				:OnOffLights;
 		com_els2bcf			:OnOffLights;
-	%control priorities
-		com_controlling		:State;
-		stateR				:State;
-		stateS				:State;
-		stateRF				:State;
-		state4				:State;
-		state5				:State;
-		state6				:State;
 	%tail communication
 		TailS				:OnOffLights;
 		TailR				:OnOffLights;
 		com_tail			:OnOffLights;
+	%update
+		update				:HighLow;
 
 	
 %External actions
@@ -66,35 +60,41 @@ proc BodyControllerFront(high:OnOffLights, low:OnOffLights,key:keystate,pit:pitm
 
 
 	%Receiving communication 
-	+	sum newkey:keystate  .(state!=Check)-> keyR(newkey) . BodyControllerFront(key=newkey,state=Check)
+	+	(state==Idle)->sum newkey:keystate  . keyR(newkey) . BodyControllerFront(key=newkey,state=Check)
 	+   sum newpit:pitman   . (state==Idle)->pitR(newpit) . BodyControllerFront(pit=newpit,state=Check)
 	+	sum newels:OnOffLights .(state==Idle)-> elsR(newels) .BodyControllerFront(els=newels,state=Check)
-	+ 	sum newstate:State	. stateRF(newstate)	. BodyControllerFront(state = newstate)
 
 	%logic and sending communication
-	+ 	(key != NoKey && ((els == On && pit == Push) || ( pit == Flash)))	->(highS(On). BodyControllerFront(high=On)) 
+%highbeam
+	+ 	(state==Check)->((key != NoKey && ((els == On && pit == Push) || ( pit == Flash)))	->
+	%if yes turn on
+			((high!=On)->(highS(On). BodyControllerFront(high=On,state=CheckL))<>(update(Low).BodyControllerFront(state=CheckL)))
 			<> 
-			((high!=Off)->(highS(Off)	. BodyControllerFront(high = Off,state = Idle))<>(stateRF(Idle).BodyControllerFront(state=Idle)))
-	+	(key != NoKey && ( els == On ||(els == Auto  &&     bs==Low)))		->(lowS(On) . BodyControllerFront(low=On)) 
+			((high!=Off)->(highS(Off)	. BodyControllerFront(high = Off,state=CheckL))<>(update(Low).BodyControllerFront(state=CheckL))))
+%lowbeam
+	+	(state==CheckL)->((key != NoKey && ( els == On ||(els == Auto  &&     bs==Low)))		->
+			((low!=On)->lowS(On) . BodyControllerFront(low=On,state=Checkt)<>(update(Low).BodyControllerFront(state=Checkt))) 
 			<> 
-			((low!=Off)->(lowS(Off)  . BodyControllerFront(low=Off,state=Idle))<>(stateRF(Idle). BodyControllerFront(state=Idle)))
-	+	(high == On||low==On) -> (TailS(On). BodyControllerFront(Tail=On))<>( TailS(Off).BodyControllerFront(Tail=Off))	
+			((low!=Off)->(lowS(Off)  . BodyControllerFront(low=Off,state=Checkt))<>(update(Low).BodyControllerFront(state=Checkt))))
+%taillight
+	+	(state==Checkt) ->((high == On||low==On)-> 
+			((Tail!=On)->(TailS(On). BodyControllerFront(Tail=On,state=Idle))<>(update(Low).BodyControllerFront(state=Idle)))
+			<>
+			((Tail!=Off)->(TailS(Off).BodyControllerFront(Tail=Off,state=Idle))<>(update(Low).BodyControllerFront(state=Idle)))
+			)
 		
 ;
 
-proc HighBeamModule(high:OnOffLights, low:OnOffLights,state:State) =
-		sum newhigh:OnOffLights  . 	(highR(newhigh)	.	(HighBeam(newhigh) .stateS(Idle). HighBeamModule(high=newhigh)))%<>(stateS(Idle).HighBeamModule())
-	+	sum newlow:OnOffLights 	 . (lowR(newlow) 	.	(LowBeam(newlow)   .stateS(Idle). HighBeamModule(low=newlow))) %<>(stateS(Idle).HighBeamModule())
-	+ 	sum newstate:State	. stateS(newstate)	. HighBeamModule(state = newstate)
-	%	sum newhigh:OnOffLights  . (high != newhigh)	-> 	(highR(newhigh)	.	(HighBeam(newhigh) .stateS(Idle). HighBeamModule(high=newhigh)))%<>(stateS(Idle).HighBeamModule())
-	%+	sum newlow:OnOffLights 	 . (low != newlow) 		->(	lowR(newlow) 	.	(LowBeam(newlow)   .stateS(Idle). HighBeamModule(low=newlow))) %<>(stateS(Idle).HighBeamModule())
-%+	sum newhigh:OnOffLights  . (high != newhigh)	-> stateS(Idle).HighBeamModule()
+proc HighBeamModule(high:OnOffLights, low:OnOffLights) =
+		sum newhigh:OnOffLights  .( (highR(newhigh)	.	(HighBeam(newhigh) . HighBeamModule(high=newhigh))))
+	+	sum newlow:OnOffLights 	 .(	lowR(newlow) 	.	(LowBeam(newlow)   . HighBeamModule(low=newlow)))
+
 
 ;
 
-proc BodyControllerRear(Tail:OnOffLights,state:State) =
-		sum newtail:OnOffLights . TailR(newtail)	. 	TailLight(newtail) 	.stateS(Idle). BodyControllerRear(Tail = newtail)  		
-	+ 	sum newstate:State	. stateS(newstate)	. BodyControllerRear(state = newstate)
+proc BodyControllerRear(Tail:OnOffLights) =
+		sum newtail:OnOffLights .TailR(newtail)	. 	TailLight(newtail) 	. BodyControllerRear(Tail = newtail)		
+
 ;
 
 proc IgnitionSwitch(key:keystate) =
@@ -112,17 +112,18 @@ proc SteeringColumnSwitch(pit:pitman) =
 	+	(pit == Neutral)	-> PitmanArm(Push)		. pitS(Push)		.SteeringColumnSwitch(pit=Push)
 
 ;
-proc ExternalLampSwitch(els:OnOffLights,state:State) = 
-		(els != On && state == Idle)->ExtLampSwitch(On)  .elsS(On)	. ExternalLampSwitch(els=On)
-	+	(els == On && state == Idle)->ExtLampSwitch(Off) .elsS(Off)	. ExternalLampSwitch(els=Off)
-	+	(els == On && state == Idle)->ExtLampSwitch(Auto).elsS(Auto)	. ExternalLampSwitch(els=Auto)
-	+	sum newstate:State	. stateR(newstate)	.ExternalLampSwitch(state=newstate)
+proc ExternalLampSwitch(els:OnOffLights) = 
+		(els != On)->ExtLampSwitch(On)  .elsS(On)	. ExternalLampSwitch(els=On)
+	+	(els == On)->ExtLampSwitch(Off) .elsS(Off)	. ExternalLampSwitch(els=Off)
+	+	(els == On)->ExtLampSwitch(Auto).elsS(Auto)	. ExternalLampSwitch(els=Auto)
+
 		
 ;
 
 %init HighBeamModule(Off,Off);
-init 		allow ({com_bcf2hb_high,com_bcf2hb_low,com_ign2bcf,com_scs2bcf,com_els2bcf,com_controlling,
-					LowBeam,HighBeam,TailLight,ExtLampSwitch,KeyState,PitmanArm,DRL,Brightness
+init 		hide({update},
+				allow ({com_bcf2hb_high,com_bcf2hb_low,com_ign2bcf,com_scs2bcf,com_els2bcf,com_tail,
+					LowBeam,HighBeam,TailLight,ExtLampSwitch,KeyState,PitmanArm,DRL,Brightness,update
 					} ,
 				comm({
 					highS|	highR 					-> com_bcf2hb_high, 
@@ -130,13 +131,12 @@ init 		allow ({com_bcf2hb_high,com_bcf2hb_low,com_ign2bcf,com_scs2bcf,com_els2bc
 					keyS		   |keyR 			-> com_ign2bcf,
 					pitS		   |pitR			-> com_scs2bcf,
 					elsS		   |elsR			-> com_els2bcf,
-					TailS			|TailR			-> com_tail,
-					stateS|stateR|stateRF			-> com_controlling
+					TailS			|TailR			-> com_tail
 				}, 
 			BodyControllerFront(Off,Off,NoKey, Neutral,Off,High,Off,Idle,Off)||
-			HighBeamModule(Off,Off,Idle)||
+			HighBeamModule(Off,Off)||
 			IgnitionSwitch(NoKey)||
-			BodyControllerRear(Off,Idle)||
+			BodyControllerRear(Off)||
 			SteeringColumnSwitch(Neutral)||
-			ExternalLampSwitch(Off,Idle)
-			));
+			ExternalLampSwitch(Off)
+			)));
