@@ -1,4 +1,4 @@
 [!KeyState(Ignition)*.
  ExtLampSwitch(Auto)* .
  !ExtLampSwitch(On)]
- <true* .(LowBeam(Off) || !LowBeam(On))>true
+ <true* .(LowBeam(Off))>true
