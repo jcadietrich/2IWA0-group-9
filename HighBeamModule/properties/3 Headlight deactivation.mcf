@@ -2,3 +2,8 @@
  !KeyState(Inserted)*.
  ExtLampSwitch(Auto)]
  <!ExtLampSwitch(On)||KeyState(Inserted)* .(LowBeam(Off))>true
+&&
+[true*.	ExtLampSwitch(Auto).
+ !ExtLampSwitch(On)*.
+ KeyState(NoKey)]
+ <!ExtLampSwitch(On)||KeyState(Inserted)* .(LowBeam(Off))>true

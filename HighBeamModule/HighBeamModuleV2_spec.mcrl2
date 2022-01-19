@@ -35,7 +35,6 @@ act
 		com_tail			:OnOffLights;
 	%update
 		update				:HighLow;
-
 	
 %External actions
 	LowBeam	   				:OnOffLights;
@@ -52,58 +51,88 @@ act
 proc BodyControllerFront(high:OnOffLights, low:OnOffLights,key:keystate,pit:pitman,els:OnOffLights,bs:HighLow,drl:OnOffLights,state:State,Tail:OnOffLights) =
 	%DRL
 		(state==Idle)->(drl == On)	->DRL(Off)			. BodyControllerFront(drl=Off,state=Check)
-	+	(state==Idle)->(drl == Off)->DRL(On)			. BodyControllerFront(drl=On,state=Check)
+	+	(state==Idle)->(drl == Off)	->DRL(On)			. BodyControllerFront(drl=On,state=Check)
 
 	%Brightness sensor
 	+	(state==Idle)->(bs == Low)->Brightness(High)	. BodyControllerFront(bs=High,state=Check)
-	+	(state==Idle)->(bs != Low)->Brightness(Low)	. BodyControllerFront(bs=Low,state=Check)	
+	+	(state==Idle)->(bs != Low)->Brightness(Low)		. BodyControllerFront(bs=Low,state=Check)	
 
 
 	%Receiving communication 
-	+	(state==Idle)->sum newkey:keystate  . keyR(newkey) . BodyControllerFront(key=newkey,state=Check)
-	+   sum newpit:pitman   . (state==Idle)->pitR(newpit) . BodyControllerFront(pit=newpit,state=Check)
-	+	sum newels:OnOffLights .(state==Idle)-> elsR(newels) .BodyControllerFront(els=newels,state=Check)
+	+	sum newkey:keystate  	. (state==Idle)	->keyR(newkey) 	. BodyControllerFront(key=newkey,state=Check)
+	+   sum newpit:pitman   	. (state==Idle)	->pitR(newpit) 	. BodyControllerFront(pit=newpit,state=Check)
+	+	sum newels:OnOffLights 	. (state==Idle)	-> elsR(newels) . BodyControllerFront(els=newels,state=Check)
 
-	%logic and sending communication
+%logic 
 %highbeam
-	+ 	(state==Check)->((key != NoKey && ((els == On && pit == Push) || ( pit == Flash)))	->
-	%if yes turn on
-			((high!=On)->(highS(On). BodyControllerFront(high=On,state=CheckL))<>(update(Low).BodyControllerFront(state=CheckL)))
+	+ 	(state==Check)	->((key != NoKey && ((els == On && pit == Push) || ( pit == Flash)))	->
+			%if yes turn on
+			((high!=On)	->
+				%if it is off turn it on
+				(highS(On). BodyControllerFront(high=On,state=CheckL))
+				<>
+				%if it is already on only update state
+				(update(Low).BodyControllerFront(state=CheckL)))
 			<> 
-			((high!=Off)->(highS(Off)	. BodyControllerFront(high = Off,state=CheckL))<>(update(Low).BodyControllerFront(state=CheckL))))
+			%if no turn off
+			((high!=Off)->
+				%if it is on turn it off
+				(highS(Off)	. BodyControllerFront(high = Off,state=CheckL))
+				<>
+				%if already off only update state
+				(update(Low).BodyControllerFront(state=CheckL))
+			)
+	)
 %lowbeam
-	+	(state==CheckL)->((key != NoKey && ( els == On ||(els == Auto  &&     bs==Low)))		->
-			((low!=On)->lowS(On) . BodyControllerFront(low=On,state=Checkt)<>(update(Low).BodyControllerFront(state=Checkt))) 
+	+	(state==CheckL)	->((key != NoKey && ( els == On ||(els == Auto  &&     bs==Low))||(key==Ignition && drl==On))->
+			%if yes then turn on 
+			((low!=On)	->
+				%if it is off turn it on
+				lowS(On) . BodyControllerFront(low=On,state=Checkt)
+				<>
+				%if it is already on only update state
+				(update(Low).BodyControllerFront(state=Checkt))) 
 			<> 
-			((low!=Off)->(lowS(Off)  . BodyControllerFront(low=Off,state=Checkt))<>(update(Low).BodyControllerFront(state=Checkt))))
+			%if no then turn off
+			((low!=Off)	->
+				(lowS(Off)  . BodyControllerFront(low=Off,state=Checkt))
+				<>
+				%if it is already off only update state
+				(update(Low).BodyControllerFront(state=Checkt))))
 %taillight
-	+	(state==Checkt) ->((high == On||low==On)-> 
-			((Tail!=On)->(TailS(On). BodyControllerFront(Tail=On,state=Idle))<>(update(Low).BodyControllerFront(state=Idle)))
+	+	(state==Checkt) ->((high == On||low==On)->
+			%if yes then turn it on 
+			((Tail!=On)	->
+				%if it is off turn it on
+				(TailS(On). BodyControllerFront(Tail=On,state=Idle))
+				<>
+				%if it is already on only update state
+				(update(Low).BodyControllerFront(state=Idle)))
 			<>
-			((Tail!=Off)->(TailS(Off).BodyControllerFront(Tail=Off,state=Idle))<>(update(Low).BodyControllerFront(state=Idle)))
+			%if no then turn off
+			((Tail!=Off)->
+				%if it is on turn it off
+				(TailS(Off).BodyControllerFront(Tail=Off,state=Idle))
+				<>
+				%if it is already off only update state
+				(update(Low).BodyControllerFront(state=Idle)))
 			)
 		
 ;
 
 proc HighBeamModule(high:OnOffLights, low:OnOffLights) =
-		sum newhigh:OnOffLights  .( (highR(newhigh)	.	(HighBeam(newhigh) . HighBeamModule(high=newhigh))))%<>(stateS(Idle).HighBeamModule())
+		sum newhigh:OnOffLights  .( (highR(newhigh)	.	(HighBeam(newhigh) . HighBeamModule(high=newhigh))))
 	+	sum newlow:OnOffLights 	 .(	lowR(newlow) 	.	(LowBeam(newlow)   . HighBeamModule(low=newlow)))
-
-
 ;
 
 proc BodyControllerRear(Tail:OnOffLights) =
 		sum newtail:OnOffLights .TailR(newtail)	. 	TailLight(newtail) 	. BodyControllerRear(Tail = newtail)		
-
 ;
 
-proc IgnitionSwitch(key:keystate) =
-	
+proc IgnitionSwitch(key:keystate) =	
 		(key != Inserted)->KeyState(Inserted) 		. keyS(Inserted) 	. IgnitionSwitch(key=Inserted)
 	+	(key == Inserted)->KeyState(Ignition) 		. keyS(Ignition)	. IgnitionSwitch(key=Ignition)
 	+	(key == Inserted)->KeyState(NoKey)	  		. keyS(NoKey)		. IgnitionSwitch(key=NoKey)
-
-
 ;
 
 proc SteeringColumnSwitch(pit:pitman) = 
@@ -115,9 +144,7 @@ proc SteeringColumnSwitch(pit:pitman) =
 proc ExternalLampSwitch(els:OnOffLights) = 
 		(els != On)->ExtLampSwitch(On)  .elsS(On)	. ExternalLampSwitch(els=On)
 	+	(els == On)->ExtLampSwitch(Off) .elsS(Off)	. ExternalLampSwitch(els=Off)
-	+	(els == On)->ExtLampSwitch(Auto).elsS(Auto)	. ExternalLampSwitch(els=Auto)
-
-		
+	+	(els == On)->ExtLampSwitch(Auto).elsS(Auto)	. ExternalLampSwitch(els=Auto)		
 ;
 
 %init HighBeamModule(Off,Off);

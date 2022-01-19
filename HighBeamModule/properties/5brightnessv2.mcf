@@ -1,0 +1,7 @@
+[ ExtLampSwitch(Auto)* .
+ !ExtLampSwitch(On)*.
+ KeyState(Ignition).
+ !(KeyState(NoKey)||ExtLampSwitch(On))*.
+ Brightness(Low)]
+<!(KeyState(NoKey)||ExtLampSwitch(On)||Brightness(High))*
+. LowBeam(On)>true

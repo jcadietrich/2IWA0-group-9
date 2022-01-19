@@ -5,9 +5,9 @@
   <property>2 Low Beam Headlights</property>
   <property>3 Headlight deactivation</property>
   <property>4 DRL on          </property>
-  <property>4 DRL off        </property>
   <property>5 brightness     </property>
   <property>6 tail lights</property>
   <property>8 highbeam</property>
+  <property>5brightnessv2</property>
  </properties>
 </root>

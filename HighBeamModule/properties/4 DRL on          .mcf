@@ -1,9 +1,20 @@
-[true*. DRL(On) .
- true*. KeyState(Ignition). 
- true*. !KeyState(NoKey)]
-<true*. LowBeam(On)>true
+[ExtLampSwitch(Off)*. DRL(On) .
+ !(DRL(Off)||ExtLampSwitch(On))*. KeyState(Ignition)]
+<!(DRL(Off)||KeyState(NoKey)||ExtLampSwitch(On))*. LowBeam(On)>true
 
-&&[true*. DRL(On) .
- true*. KeyState(Ignition). 
- true*. KeyState(NoKey)]
-<true*. LowBeam(Off)>true
+&&
+
+[ExtLampSwitch(Off)*. KeyState(Ignition). 
+ !KeyState(NoKey)*. DRL(On).
+ !(DRL(Off)||KeyState(NoKey))*]
+<!(DRL(Off)||KeyState(NoKey)||ExtLampSwitch(On))*.LowBeam(On)>true
+
+&&
+[true. KeyState(NoKey)]
+<!KeyState(Inserted)*.LowBeam(Off)>true
+
+&&
+[ExtLampSwitch(Off)*. KeyState(Ignition). 
+ !(KeyState(NoKey)||ExtLampSwitch(On))*
+ . DRL(Off)]
+<!(DRL(On)||KeyState(NoKey)||ExtLampSwitch(On))*.LowBeam(On)>true
