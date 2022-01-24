@@ -1,10 +1,10 @@
-[ ExtLampSwitch(Auto)* .
+[true*. ExtLampSwitch(Auto)* .
 !ExtLampSwitch(On)*.
 KeyState(Ignition).
 !(KeyState(Inserted)||ExtLampSwitch(On))*.
-Brightness(Low)]
-<!(KeyState(Inserted)||ExtLampSwitch(On)||Brightness(High))*
-. LowBeam(On)>true
+Brightness(Low). !(KeyState(Inserted)||ExtLampSwitch(On)||Brightness(High))*
+]
+<true*.LowBeam(On)>true
 
 &&
 [true*. ExtLampSwitch(Auto) .
@@ -12,8 +12,7 @@ Brightness(Low)]
 . Brightness(Low). 
 !(Brightness(High)||ExtLampSwitch(On))* .
 KeyState(Ignition)]
-<(KeyState(Inserted)||ExtLampSwitch(On)||Brightness(High))*
-. LowBeam(On)>true
+<true*.LowBeam(On)>true
 
 &&
 [true*. Brightness(Low). 
@@ -21,8 +20,7 @@ KeyState(Ignition)]
 ExtLampSwitch(Auto) .
 !(ExtLampSwitch(On) ||Brightness(High))*.
 KeyState(Ignition)]
-<(KeyState(Inserted)||ExtLampSwitch(On) ||Brightness(High))*
-. LowBeam(On)>true
+<true*.LowBeam(On)>true
 
 &&
 [true*. Brightness(Low). 
@@ -30,8 +28,7 @@ KeyState(Ignition)]
 KeyState(Ignition) .
 !(KeyState(Inserted)||Brightness(High))* . 
 ExtLampSwitch(Auto)]
-<(KeyState(Inserted)||ExtLampSwitch(On) ||Brightness(High))*
-. LowBeam(On)>true
+<true*.LowBeam(On)>true
 
 &&
 [true*. KeyState(Ignition) .
@@ -39,8 +36,7 @@ ExtLampSwitch(Auto)]
 ExtLampSwitch(Auto) .
 !(ExtLampSwitch(On) ||KeyState(Inserted))*.
 Brightness(Low)]
-<(KeyState(Inserted)||ExtLampSwitch(On) ||Brightness(High))*
-. LowBeam(On)>true
+<true*.LowBeam(On)>true
 
 &&
 [true*. KeyState(Ignition) .
@@ -48,6 +44,5 @@ Brightness(Low)]
 Brightness(Low).
 !(Brightness(High)||KeyState(Inserted))*.
 ExtLampSwitch(Auto)]
-<(KeyState(Inserted)||ExtLampSwitch(On) ||Brightness(High))*
-. LowBeam(On)>true
+<true*.LowBeam(On)>true
 

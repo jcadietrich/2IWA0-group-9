@@ -4,4 +4,5 @@
 &&
 [!LowBeam(On)*. 
 (HighBeam(On))]
-<!(HighBeam(Off)||LowBeam(On))* .TailLight(On)> true
+<!HighBeam(Off)* .TailLight(On)> true
+

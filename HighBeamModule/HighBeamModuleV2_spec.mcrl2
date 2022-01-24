@@ -2,7 +2,7 @@ sort OnOffLights	= struct On | Off | Auto;
 sort keystate		= struct NoKey | Inserted | Ignition;
 sort pitman			= struct Push | Flash | Neutral;
 sort HighLow		= struct High | Low;
-sort State			= struct Idle|Check|Checkt|CheckL;
+sort State			= struct Idle|Check|CheckL|CheckT|Wait;
 
 act 
 %Internal actions
@@ -35,6 +35,9 @@ act
 		com_tail			:OnOffLights;
 	%update
 		update				:HighLow;
+		ack_S					:State;
+		ack_R				:State;
+		com_ack			:State;
 	
 %External actions
 	LowBeam	   				:OnOffLights;
@@ -60,8 +63,9 @@ proc BodyControllerFront(high:OnOffLights, low:OnOffLights,key:keystate,pit:pitm
 
 	%Receiving communication 
 	+	sum newkey:keystate  	. (state==Idle)	->keyR(newkey) 	. BodyControllerFront(key=newkey,state=Check)
-	+   sum newpit:pitman   	. (state==Idle)	->pitR(newpit) 	. BodyControllerFront(pit=newpit,state=Check)
+	+  sum newpit:pitman   	. (state==Idle)	->pitR(newpit) 	. BodyControllerFront(pit=newpit,state=Check)
 	+	sum newels:OnOffLights 	. (state==Idle)	-> elsR(newels) . BodyControllerFront(els=newels,state=Check)
+	+  sum newstate:State		. (state == Wait) -> ack_R(newstate).BodyControllerFront(state = newstate)
 
 %logic 
 %highbeam
@@ -69,7 +73,7 @@ proc BodyControllerFront(high:OnOffLights, low:OnOffLights,key:keystate,pit:pitm
 			%if yes turn on
 			((high!=On)	->
 				%if it is off turn it on
-				(highS(On). BodyControllerFront(high=On,state=CheckL))
+				(highS(On). BodyControllerFront(high=On,state=Wait))
 				<>
 				%if it is already on only update state
 				(update(Low).BodyControllerFront(state=CheckL)))
@@ -77,7 +81,7 @@ proc BodyControllerFront(high:OnOffLights, low:OnOffLights,key:keystate,pit:pitm
 			%if no turn off
 			((high!=Off)->
 				%if it is on turn it off
-				(highS(Off)	. BodyControllerFront(high = Off,state=CheckL))
+				(highS(Off)	. BodyControllerFront(high = Off,state=Wait))
 				<>
 				%if already off only update state
 				(update(Low).BodyControllerFront(state=CheckL))
@@ -88,23 +92,23 @@ proc BodyControllerFront(high:OnOffLights, low:OnOffLights,key:keystate,pit:pitm
 			%if yes then turn on 
 			((low!=On)	->
 				%if it is off turn it on
-				(lowS(On) . BodyControllerFront(low=On,state=Checkt))
+				(lowS(On) . BodyControllerFront(low=On,state=Wait))
 				<>
 				%if it is already on only update state
-				(update(Low).BodyControllerFront(state=Checkt))) 
+				(update(Low).BodyControllerFront(state=CheckT))) 
 			<> 
 			%if no then turn off
 			((low!=Off)	->
-				(lowS(Off)  . BodyControllerFront(low=Off,state=Checkt))
+				(lowS(Off)  . BodyControllerFront(low=Off,state=Wait))
 				<>
 				%if it is already off only update state
-				(update(Low).BodyControllerFront(state=Checkt))))
+				(update(Low).BodyControllerFront(state=CheckT))))
 %taillight
-	+	(state==Checkt) ->((high == On||low==On)->
+	+	(state==CheckT) ->((high == On||low==On)->
 			%if yes then turn it on 
 			((Tail!=On)	->
 				%if it is off turn it on
-				(TailS(On). BodyControllerFront(Tail=On,state=Idle))
+				(TailS(On). BodyControllerFront(Tail=On,state=Wait))
 				<>
 				%if it is already on only update state
 				(update(Low).BodyControllerFront(state=Idle)))
@@ -112,7 +116,7 @@ proc BodyControllerFront(high:OnOffLights, low:OnOffLights,key:keystate,pit:pitm
 			%if no then turn off
 			((Tail!=Off)->
 				%if it is on turn it off
-				(TailS(Off).BodyControllerFront(Tail=Off,state=Idle))
+				(TailS(Off).BodyControllerFront(Tail=Off,state=Wait))
 				<>
 				%if it is already off only update state
 				(update(Low).BodyControllerFront(state=Idle)))
@@ -121,12 +125,12 @@ proc BodyControllerFront(high:OnOffLights, low:OnOffLights,key:keystate,pit:pitm
 ;
 
 proc HighBeamModule =
-		sum newhigh:OnOffLights  . 	highR(newhigh)	. HighBeam(newhigh) . HighBeamModule()
-	+	sum newlow:OnOffLights 	 .	lowR(newlow) 	. LowBeam(newlow)   . HighBeamModule()
+		sum newhigh:OnOffLights  . 	highR(newhigh)	. HighBeam(newhigh) . ack_S(CheckL). HighBeamModule()
+	+	sum newlow:OnOffLights 	 .	lowR(newlow) 	. LowBeam(newlow)   . ack_S(CheckT). HighBeamModule()
 ;
 
 proc BodyControllerRear =
-		sum newtail:OnOffLights  .  TailR(newtail)	. TailLight(newtail). BodyControllerRear()		
+		sum newtail:OnOffLights  .  TailR(newtail)	. TailLight(newtail). ack_S(Idle). BodyControllerRear()		
 ;
 
 proc IgnitionSwitch(key:keystate) =	
@@ -148,8 +152,8 @@ proc ExternalLampSwitch(els:OnOffLights) =
 ;
 
 %init HighBeamModule(Off,Off);
-init 		hide({update},
-				allow ({com_bcf2hb_high,com_bcf2hb_low,com_ign2bcf,com_scs2bcf,com_els2bcf,com_tail,
+init 		hide({update,com_ack,com_tail},
+				allow ({com_bcf2hb_high,com_bcf2hb_low,com_ign2bcf,com_scs2bcf,com_els2bcf,com_tail,com_ack,
 					LowBeam,HighBeam,TailLight,ExtLampSwitch,KeyState,PitmanArm,DRL,Brightness,update
 					} ,
 				comm({
@@ -157,8 +161,9 @@ init 		hide({update},
 					lowS 	|	lowR   			-> com_bcf2hb_low,
 					keyS	|	keyR 			-> com_ign2bcf,
 					pitS	|	pitR			-> com_scs2bcf,
-					elsS   	|	elsR			-> com_els2bcf,
-					TailS	|	TailR			-> com_tail
+					elsS  |	elsR			-> com_els2bcf,
+					TailS	|	TailR			-> com_tail,
+					ack_R |	ack_S			->com_ack
 				}, 
 			BodyControllerFront(Off,Off,NoKey, Neutral,Off,High,Off,Idle,Off)||
 			HighBeamModule()||
