@@ -158,7 +158,7 @@ init 		hide({update,com_ack,com_tail},
 					} ,
 				comm({
 					highS	|	highR 			-> com_bcf2hb_high, 
-					lowS 	|	lowR   			-> com_bcf2hb_low,
+					lowS 	|	lowR   		-> com_bcf2hb_low,
 					keyS	|	keyR 			-> com_ign2bcf,
 					pitS	|	pitR			-> com_scs2bcf,
 					elsS  |	elsR			-> com_els2bcf,

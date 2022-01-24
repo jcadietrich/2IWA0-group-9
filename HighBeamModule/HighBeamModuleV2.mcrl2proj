@@ -8,5 +8,6 @@
   <property>5 brightness     </property>
   <property>6 tail lights</property>
   <property>8 highbeam</property>
+  <property>7 Flasher</property>
  </properties>
 </root>

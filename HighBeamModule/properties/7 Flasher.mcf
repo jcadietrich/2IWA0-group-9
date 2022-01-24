@@ -1,0 +1,10 @@
+[true*. PitmanArm(Flash). 
+ !PitmanArm(Neutral)*]
+<true*. HighBeam(On)>true
+
+&&
+
+[true*. PitmanArm(Flash). 
+ HighBeam(On)*.
+ PitmanArm(Neutral)]
+<true*. HighBeam(Off)>true
